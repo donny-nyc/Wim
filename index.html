@@ -1,22 +1,77 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
+
+		<style>
+			html {
+				background-color: #7F7FFF;
+				color: #FFF;
+				font-size: 1.5em;
+				font-family: monospace;
+			}
+
+			.row {
+				line-height: 1.5em;
+			}
+
+			.rowNumber {
+				visibility: hidden;
+				font-family: monospace;
+			}
+		</style>
 	</head>
 
 	<body>
 		<div id='text-box' style='height: 90%'>
-			<span class='boxInput' />
+			<span class='boxInput'>
+			</span>
 		</div>
-		<div id='cmd-box' style='font-family: monospace; height: 1em; visibility: hidden'>
+		<div id='cmd-box' style='font-family: monospace; height: 1.tem; visibility: hidden;'>
 			<span>: </span><span class='boxInput' />
 		</div>
-		<div id='search-box' style='font-family: monospace; height:1em; visibility: hidden'>
+		<div id='search-box' style='font-family: monospace; height:1.5em; visibility: hidden;'>
 			<span>/ </span><span class='boxInput' />
 
 		</div>
 		<div id='editorMode-indicator' style='position: fixed; bottom: 0; right: 0; font-family: monospace;' />
 	</body>
 	<script>
+		var getBoxInput = boxId => {
+			var boxInput;
+
+			if (boxId === undefined) return null;
+
+			boxInput = document.querySelector(`#${boxId} .boxInput`);
+
+			if (boxInput === null) console.log(`boxId ${boxId} input not found.`);
+
+			return boxInput;
+		}
+
+		var rowCount = 0;
+
+		var pushNewRow = () => {
+			var inputBox = getBoxInput('text-box');
+			
+			const row = `<span class='row' id='row-${++rowCount}'><span class='rowNumber'>${rowCount} </span><span class='rowContent' ></span><br />`
+
+			inputBox.innerHTML = inputBox.innerHTML + row;
+
+			console.log(`rowCount: ${rowCount}`);
+		}
+
+		pushNewRow();
+
+		var getInputRow = rowNumber => {
+			if (rowNumber === undefined || rowNumber === null || Number(rowNumber) < 0) return;
+
+			const roundedRowNumber = Math.floor(rowNumber);
+
+			const row = document.querySelector(`#row-${roundedRowNumber} .rowContent`)
+
+			return row;
+		}
+
 		var setModeIndicator = mode => {
 			if (mode === null || mode === undefined || mode.length === 0) return;
 
@@ -124,30 +179,38 @@
 			}
 		}
 
+		var toggleRowNumbers = () => {
+			var sheet = document.styleSheets[0];
+			var rules = sheet.cssRules || sheet.rules;
+
+			var visibility = rules[2];
+
+			console.log(sheet.cssRules)
+
+			if (visibility.style.visibility === "hidden") {
+				document.styleSheets[0].cssRules[2].style.visibility = "visible";
+			} else {
+				document.styleSheets[0].cssRules[2].style.visibility = "hidden";
+			}
+		}
+
 		var processCommand = () => {
 			var cmd = document.querySelector('#cmd-box .boxInput').innerHTML.trim();
 
 			if (cmd === null || cmd.length == 0) return;
 
 			switch(cmd) {
+				case "set number":
+					toggleRowNumbers();
+					break;
 				case "q":
 					resetBox('text-box');
+					rowCount = 0;
+					pushNewRow();
 					break;
 				default:
 					console.log(`${cmd}`);
 			}
-		}
-
-		var getBoxInput = boxId => {
-			var boxInput;
-
-			if (boxId === undefined) return null;
-
-			boxInput = document.querySelector(`#${boxId} .boxInput`);
-
-			if (boxInput === null) console.log(`boxId ${boxId} input not found.`);
-
-			return boxInput;
 		}
 
 		var resetBox = boxId => {
@@ -186,7 +249,8 @@
 			event.preventDefault();
 			var eventKeyAsString = event.key.toString();
 
-			var textBox = getBoxInput('text-box');
+			console.log(`rowCount ${rowCount}`)
+			var inputRow = getInputRow(rowCount);
 			var cmdBox = getBoxInput('cmd-box');
 			var searchBox = getBoxInput('search-box');
 			switch(editorMode) {
@@ -199,12 +263,11 @@
 							setEditorMode(COMMAND_MODE);
 							break;
 						case "Enter" === eventKeyAsString:
-							newChar = "<br />"
-							textBox.innerHTML = textBox.innerHTML + newChar;
+							pushNewRow();
 							break;
 						case /[ a-zA-Z0-9?\.!~@#$%^&*()<>/\;'",]/.test(eventKeyAsString):
 							newChar = eventKeyAsString;
-							textBox.innerHTML = textBox.innerHTML + newChar;
+							inputRow.innerHTML = inputRow.innerHTML + newChar;
 							break;
 						default:
 							alert('that\'s illegal');
@@ -218,7 +281,6 @@
 						case "Enter" === eventKeyAsString:
 							processCommand();
 							setEditorMode(INPUT_MODE);
-							resetBox('cmd-box');
 							break;
 						case "/" === eventKeyAsString:
 							setEditorMode(SEARCH_MODE);
@@ -232,7 +294,6 @@
 						case "Escape" === eventKeyAsString:
 						case "Enter" === eventKeyAsString:
 							setEditorMode(COMMAND_MODE);
-							resetBox('search-box');
 							break;
 						default:
 							searchBox.innerHTML = searchBox.innerHTML + eventKeyAsString;
