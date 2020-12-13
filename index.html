@@ -72,6 +72,20 @@
 			return row;
 		}
 
+		var popRow = () => {
+			if (rowCount <= 0) return; // nothing to do
+
+			const row = document.getElementById(`row-${rowCount}`);
+
+			console.log('pop row');
+			console.log(row);
+
+			if (row && row !== undefined && row !== null) {
+				row.remove();
+				rowCount--;
+			}
+		}
+
 		var setModeIndicator = mode => {
 			if (mode === null || mode === undefined || mode.length === 0) return;
 
@@ -245,11 +259,36 @@
 			}
 		}
 
+		var backspace = () => {
+			var inputRow = getInputRow(rowCount);	
+			if (inputRow.innerHTML.length > 0) {
+				inputRow.innerHTML= inputRow.innerHTML.slice(0, -1);
+			} else {
+				popRow();
+			}
+		}
+
+		document.addEventListener("keydown", (event) => {
+		   var KeyID = event.keyCode;
+		   switch(KeyID)
+		   {
+		      case 8: // backspace
+			  event.preventDefault();
+		      	  backspace();
+			  break; 
+		      case 46: // delete
+			  break;
+		      default:
+			  break;
+		   }
+		})
+
 		document.addEventListener('keypress', (event) => {
 			event.preventDefault();
 			var eventKeyAsString = event.key.toString();
 
 			console.log(`rowCount ${rowCount}`)
+			console.log(event);
 			var inputRow = getInputRow(rowCount);
 			var cmdBox = getBoxInput('cmd-box');
 			var searchBox = getBoxInput('search-box');
@@ -259,6 +298,9 @@
 					var newChar;
 					// console.log(eventKeyAsString);
 					switch(true) {
+						case "Backspace" === eventKeyAsString:
+							console.log("Delete");
+							break;
 						case ":" === eventKeyAsString:
 							setEditorMode(COMMAND_MODE);
 							break;
