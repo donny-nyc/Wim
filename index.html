@@ -1,0 +1,247 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+	</head>
+
+	<body>
+		<div id='text-box' style='height: 90%'>
+			<span class='boxInput' />
+		</div>
+		<div id='cmd-box' style='font-family: monospace; height: 1em; visibility: hidden'>
+			<span>: </span><span class='boxInput' />
+		</div>
+		<div id='search-box' style='font-family: monospace; height:1em; visibility: hidden'>
+			<span>/ </span><span class='boxInput' />
+
+		</div>
+		<div id='editorMode-indicator' style='position: fixed; bottom: 0; right: 0; font-family: monospace;' />
+	</body>
+	<script>
+		var setModeIndicator = mode => {
+			if (mode === null || mode === undefined || mode.length === 0) return;
+
+			var modeIndicator = document.getElementById('editorMode-indicator');
+
+			if (modeIndicator === undefined || modeIndicator === null) {
+				console.error('could not find modeIndicator');
+				return;
+			}
+
+			console.log(mode);
+
+			switch(mode) {
+				case INPUT_MODE:
+				case COMMAND_MODE:
+				case SEARCH_MODE:
+					modeIndicator.innerHTML = mode;
+					break;
+				default:
+					console.error(`unrecognized mode ${mode}.`);
+					modeIndicator.innerHTML = INPUT_MODE;
+			}
+		}
+
+		const INPUT_MODE = 'input';
+		const COMMAND_MODE = 'command';
+		const SEARCH_MODE = 'search';
+
+		var editorMode = INPUT_MODE; 
+		setModeIndicator(INPUT_MODE);
+
+		const TRANSITIONS = {
+			input: {
+
+			},
+			command: {
+
+			},
+			search: {
+
+			}
+		}
+
+		var registerTransition = (startMode, endMode, fn) => {
+			TRANSITIONS[startMode][endMode] = fn;
+		}
+
+		registerTransition(INPUT_MODE, COMMAND_MODE, () => {
+			toggleVisibility('cmd-box');
+			console.log('transitioning from INPUT_MODE to COMMAND_MODE');
+		});
+
+		registerTransition(INPUT_MODE, SEARCH_MODE, () => {
+			toggleVisibility('search-box');
+			console.log('transitioning from INPUT_MODE to SEARCH_MODE');
+		});
+
+		registerTransition(COMMAND_MODE, INPUT_MODE, () => {
+			resetBox('cmd-box');
+			toggleVisibility('cmd-box');
+			console.log('transitioning from COMMAND_MODE to INPUT_MODE');
+		});
+
+		registerTransition(COMMAND_MODE, SEARCH_MODE, () => {
+			resetBox('cmd-box');
+
+			toggleVisibility('cmd-box');
+			toggleVisibility('search-box');
+			console.log('transitioning from COMMAND_MODE to SEARCH_MODE');
+		});
+
+		registerTransition(SEARCH_MODE, INPUT_MODE, () => {
+			resetBox('search-box');
+			toggleVisibility('search-box');
+			console.log('transitioning from SEARCH_MODE to INPUT_MODE');
+		});
+
+		registerTransition(SEARCH_MODE, COMMAND_MODE, () => {
+			toggleVisibility('search-box');
+			toggleVisibility('cmd-box');
+			console.log('transitioning from SEARCH_MODE to COMMAND_MODE');
+		});
+
+		var setEditorMode = mode => {
+			var currentMode = editorMode;
+			// effectively whitelist modes;
+			switch(mode) {
+				case INPUT_MODE:
+					editorMode = INPUT_MODE;
+					setModeIndicator(INPUT_MODE);
+					TRANSITIONS[currentMode][INPUT_MODE]();
+					break;
+				case COMMAND_MODE:
+					editorMode = COMMAND_MODE;
+					setModeIndicator(COMMAND_MODE);
+					TRANSITIONS[currentMode][COMMAND_MODE]();
+					break;
+				case SEARCH_MODE:
+					editorMode = SEARCH_MODE;
+					setModeIndicator(SEARCH_MODE);
+					TRANSITIONS[currentMode][SEARCH_MODE]();
+					break;
+				default:
+					console.error('I don\'t think we\'re supposed to be here.');
+			}
+		}
+
+		var processCommand = () => {
+			var cmd = document.querySelector('#cmd-box .boxInput').innerHTML.trim();
+
+			if (cmd === null || cmd.length == 0) return;
+
+			switch(cmd) {
+				case "q":
+					resetBox('text-box');
+					break;
+				default:
+					console.log(`${cmd}`);
+			}
+		}
+
+		var getBoxInput = boxId => {
+			var boxInput;
+
+			if (boxId === undefined) return null;
+
+			boxInput = document.querySelector(`#${boxId} .boxInput`);
+
+			if (boxInput === null) console.log(`boxId ${boxId} input not found.`);
+
+			return boxInput;
+		}
+
+		var resetBox = boxId => {
+			var boxInput;
+
+			if (boxId === undefined) return null;
+
+			boxInput = getBoxInput(boxId);
+
+			if (boxInput) boxInput.innerHTML = null;
+		}
+
+		var toggleVisibility = boxId => {
+			console.log(`toggle visibility ${boxId}`);
+			var box;
+
+			if (boxId === undefined) return null;
+
+			box = document.getElementById(boxId);
+
+			if (box) {
+				switch(box.style.visibility) {
+					case "hidden":
+						box.style.visibility = 'visible';
+						break;
+					case "visible":
+						box.style.visibility = 'hidden';
+						break;
+					default:
+						console.log(`unsupported visibility setting '${box.style.visibility}'`);
+				}
+			}
+		}
+
+		document.addEventListener('keypress', (event) => {
+			event.preventDefault();
+			var eventKeyAsString = event.key.toString();
+
+			var textBox = getBoxInput('text-box');
+			var cmdBox = getBoxInput('cmd-box');
+			var searchBox = getBoxInput('search-box');
+			switch(editorMode) {
+				case INPUT_MODE:
+
+					var newChar;
+					// console.log(eventKeyAsString);
+					switch(true) {
+						case ":" === eventKeyAsString:
+							setEditorMode(COMMAND_MODE);
+							break;
+						case "Enter" === eventKeyAsString:
+							newChar = "<br />"
+							textBox.innerHTML = textBox.innerHTML + newChar;
+							break;
+						case /[ a-zA-Z0-9?\.!~@#$%^&*()<>/\;'",]/.test(eventKeyAsString):
+							newChar = eventKeyAsString;
+							textBox.innerHTML = textBox.innerHTML + newChar;
+							break;
+						default:
+							alert('that\'s illegal');
+							break;
+					}
+
+					break;
+				case COMMAND_MODE:
+					switch(true) {
+						case "Escape" === eventKeyAsString:
+						case "Enter" === eventKeyAsString:
+							processCommand();
+							setEditorMode(INPUT_MODE);
+							resetBox('cmd-box');
+							break;
+						case "/" === eventKeyAsString:
+							setEditorMode(SEARCH_MODE);
+							break;
+						default:
+							cmdBox.innerHTML = cmdBox.innerHTML + eventKeyAsString;
+					}
+					break;
+				case SEARCH_MODE:
+					switch(true) {
+						case "Escape" === eventKeyAsString:
+						case "Enter" === eventKeyAsString:
+							setEditorMode(COMMAND_MODE);
+							resetBox('search-box');
+							break;
+						default:
+							searchBox.innerHTML = searchBox.innerHTML + eventKeyAsString;
+					}
+					break;
+				default:
+					alert('You may ask yourself, well, "How did I get here?"');
+			}
+
+		});
+	</script>
+</html>
